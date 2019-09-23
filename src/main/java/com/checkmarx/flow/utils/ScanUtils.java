@@ -1,14 +1,11 @@
 package com.checkmarx.flow.utils;
 
-import com.checkmarx.flow.config.FlowProperties;
 import com.checkmarx.flow.config.JiraProperties;
+import com.checkmarx.flow.config.FlowProperties;
 import com.checkmarx.flow.config.RepoProperties;
 import com.checkmarx.flow.dto.*;
+import com.checkmarx.flow.dto.cx.CxScanSummary;
 import com.checkmarx.flow.exception.MachinaRuntimeException;
-import com.checkmarx.sdk.config.Constants;
-import com.checkmarx.sdk.dto.Filter;
-import com.checkmarx.sdk.dto.ScanResults;
-import com.checkmarx.sdk.dto.cx.CxScanSummary;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -16,7 +13,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.HttpClientErrorException;
-
 import javax.validation.constraints.NotNull;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -111,7 +107,7 @@ public class ScanUtils {
      * @return
      */
     public static boolean empty(String str) {
-        return str == null || str.trim().isEmpty();
+        return str == null || str.isEmpty();
     }
 
     public static boolean anyEmpty(String ...str){
@@ -411,11 +407,10 @@ public class ScanUtils {
             xMap = getXIssueMap(results.getXIssues(), request);
             log.info("Creating Merge/Pull Request Markdown comment");
 
-            //SAST
             for (Map.Entry<String, ScanResults.XIssue> xIssue : xMap.entrySet()) {
-                ScanResults.XIssue currentIssue = xIssue.getValue();
-                String fileUrl = ScanUtils.getFileUrl(request, currentIssue.getFilename());
-                if(currentIssue.getDetails() != null) {
+                try {
+                    ScanResults.XIssue currentIssue = xIssue.getValue();
+                    String fileUrl = ScanUtils.getFileUrl(request, currentIssue.getFilename());
                     for (Map.Entry<Integer, String> entry : currentIssue.getDetails().entrySet()) {
                         if (entry.getKey() != null) {  //[<line>](<url>)
                             //Azure DevOps direct repo line url is unknown at this time.
@@ -439,29 +434,9 @@ public class ScanUtils {
                     body.append(currentIssue.getFilename()).append("|");
                     body.append("[Checkmarx](").append(currentIssue.getLink()).append(")");
                     body.append(CRLF);
-                }
-            }
-
-            if(results.getOsa() != null && results.getOsa()) {
-                body.append(CRLF);
-                body.append("|Library|Severity|CVE|").append(CRLF);
-                body.append("---|---|---").append(CRLF);
-
-                //OSA
-                for (Map.Entry<String, ScanResults.XIssue> xIssue : xMap.entrySet()) {
-                    ScanResults.XIssue currentIssue = xIssue.getValue();
-                    if(currentIssue.getOsaDetails() != null) {
-                        body.append("|");
-                        body.append(currentIssue.getFilename()).append("|");
-                        body.append(currentIssue.getSeverity()).append("|");
-                        for (ScanResults.OsaDetails o : currentIssue.getOsaDetails()) {
-                            body.append("[").append(o.getCve()).append("](")
-                                    .append("https://cve.mitre.org/cgi-bin/cvename.cgi?name=").append(o.getCve()).append(") ");
-                        }
-                        body.append("|");
-                        body.append(CRLF);
-                    }
                     //body.append("```").append(currentIssue.getDescription()).append("```").append(CRLF); Description is too long
+                } catch (HttpClientErrorException e) {
+                    log.error("Error occurred while processing issue with key {} {}", xIssue.getKey(), e);
                 }
             }
         }

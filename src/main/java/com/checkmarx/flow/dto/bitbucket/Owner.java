@@ -15,6 +15,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 public class Owner {
 
+    @JsonProperty("username")
+    private String username;
     @JsonProperty("type")
     private String type;
     @JsonProperty("display_name")
@@ -23,6 +25,16 @@ public class Owner {
     private String uuid;
     @JsonProperty("links")
     private Links links;
+
+    @JsonProperty("username")
+    public String getUsername() {
+        return username;
+    }
+
+    @JsonProperty("username")
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
     @JsonProperty("type")
     public String getType() {

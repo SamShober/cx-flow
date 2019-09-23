@@ -1,16 +1,11 @@
 package com.checkmarx.flow;
 
 import com.checkmarx.flow.config.*;
-import com.checkmarx.flow.dto.BugTracker;
-import com.checkmarx.flow.dto.MachinaOverride;
-import com.checkmarx.flow.dto.ScanRequest;
+import com.checkmarx.flow.dto.*;
 import com.checkmarx.flow.service.FlowService;
 import com.checkmarx.flow.service.HelperService;
+import com.checkmarx.flow.utils.Constants;
 import com.checkmarx.flow.utils.ScanUtils;
-import com.checkmarx.sdk.config.Constants;
-import com.checkmarx.sdk.config.CxProperties;
-import com.checkmarx.sdk.dto.Filter;
-import com.checkmarx.sdk.dto.ScanResults;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -18,7 +13,7 @@ import org.slf4j.MDC;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
-
+import java.beans.ConstructorProperties;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -35,20 +30,20 @@ public class CxFlowRunner implements ApplicationRunner {
     private final JiraProperties jiraProperties;
     private final GitHubProperties gitHubProperties;
     private final GitLabProperties gitLabProperties;
-    private final ADOProperties adoProperties;
     private final HelperService helperService;
     private final FlowService flowService;
 
+    @ConstructorProperties({"flowProperties", "cxProperties", "jiraProperties", "gitHubProperties",
+            "gitLabProperties", "flowService", "helperService"})
     public CxFlowRunner(FlowProperties flowProperties,
                         CxProperties cxProperties, JiraProperties jiraProperties,
                         GitHubProperties gitHubProperties, GitLabProperties gitLabProperties,
-                        ADOProperties adoProperties, FlowService flowService, HelperService helperService) {
+                        FlowService flowService, HelperService helperService) {
         this.flowProperties = flowProperties;
         this.cxProperties = cxProperties;
         this.jiraProperties = jiraProperties;
         this.gitHubProperties = gitHubProperties;
         this.gitLabProperties = gitLabProperties;
-        this.adoProperties = adoProperties;
         this.flowService = flowService;
         this.helperService = helperService;
     }
@@ -80,8 +75,6 @@ public class CxFlowRunner implements ApplicationRunner {
         String preset = null;
         String team;
         String cxProject;
-		String altProject;
-        String altFields;
         String config;
         List<String> severity;
         List<String> cwe;
@@ -129,8 +122,6 @@ public class CxFlowRunner implements ApplicationRunner {
         branch = getOptionValues(args,"branch");
         namespace = getOptionValues(args,"namespace");
         team = getOptionValues(args,"cx-team");
-		altProject = getOptionValues(args,"alt-project");
-        altFields = getOptionValues(args,"alt-fields");
         cxProject = getOptionValues(args,"cx-project");
         application = getOptionValues(args,"app");
         assignee = getOptionValues(args,"assignee");
@@ -229,20 +220,6 @@ public class CxFlowRunner implements ApplicationRunner {
                         .fields(jiraProperties.getFields())
                         .build();
                 break;
-            case ADOPULL:
-            case adopull:
-                bugType = BugTracker.Type.ADOPULL;
-                bt = BugTracker.builder()
-                        .type(bugType)
-                        .build();
-                repoType = ScanRequest.Repository.ADO;
-
-                if(ScanUtils.empty(namespace) ||ScanUtils.empty(repoName)||ScanUtils.empty(mergeId)){
-                    log.error("Namespace/Repo/MergeId must be provided for ADOPULL bug tracking");
-                    exit(1);
-                }
-                mergeNoteUri = adoProperties.getMergeNoteUri(namespace, repoName, mergeId);
-                break;
             case GITHUBPULL:
             case githubpull:
                 bugType = BugTracker.Type.GITHUBPULL;
@@ -300,8 +277,6 @@ public class CxFlowRunner implements ApplicationRunner {
                 .excludeFiles(excludeFiles)
                 .bugTracker(bt)
                 .filters(filters)
-				.altProject(altProject)
-                .altFields(altFields)
                 .build();
 
         request = ScanUtils.overrideMap(request, o);
@@ -345,6 +320,7 @@ public class CxFlowRunner implements ApplicationRunner {
 
                     cxParse(request, f);
                 }
+
             }
             else if(args.containsOption("batch")){
                 log.info("Executing batch process");
