@@ -1,19 +1,27 @@
 package com.checkmarx.flow.controller;
 
-import com.checkmarx.flow.config.*;
-import com.checkmarx.flow.dto.*;
+import com.checkmarx.flow.config.FlowProperties;
+import com.checkmarx.flow.config.GitLabProperties;
+import com.checkmarx.flow.config.JiraProperties;
+import com.checkmarx.flow.dto.BugTracker;
+import com.checkmarx.flow.dto.EventResponse;
+import com.checkmarx.flow.dto.MachinaOverride;
+import com.checkmarx.flow.dto.ScanRequest;
 import com.checkmarx.flow.dto.gitlab.*;
 import com.checkmarx.flow.exception.InvalidTokenException;
-import com.checkmarx.flow.service.GitLabService;
 import com.checkmarx.flow.service.FlowService;
+import com.checkmarx.flow.service.GitLabService;
 import com.checkmarx.flow.service.HelperService;
-import com.checkmarx.flow.utils.Constants;
 import com.checkmarx.flow.utils.ScanUtils;
+import com.checkmarx.sdk.config.Constants;
+import com.checkmarx.sdk.config.CxProperties;
+import com.checkmarx.sdk.dto.Filter;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.beans.ConstructorProperties;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -187,6 +195,9 @@ public class GitLabController {
             request = ScanUtils.overrideMap(request, o);
             request.putAdditionalMetadata("merge_id",objectAttributes.getIid().toString());
             request.putAdditionalMetadata("merge_title", objectAttributes.getTitle());
+            if(proj.getId() != null) {
+                request.setRepoProjectId(proj.getId());
+            }
             request.setId(uid);
             if(helperService.isBranch2Scan(request, branches)){
                 flowService.initiateAutomation(request);
@@ -344,6 +355,9 @@ public class GitLabController {
 
             request = ScanUtils.overrideMap(request, o);
             request.setId(uid);
+            if(proj.getId() != null) {
+                request.setRepoProjectId(proj.getId());
+            }
             if(helperService.isBranch2Scan(request, branches)){
                 flowService.initiateAutomation(request);
             }

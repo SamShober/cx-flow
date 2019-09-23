@@ -24,7 +24,7 @@ public class FlowConfig {
         this.properties = properties;
     }
 
-    @Bean
+    @Bean(name="flowRestTemplate")
     public RestTemplate getRestTemplate(){
         RestTemplate restTemplate = new RestTemplate();
 
@@ -64,5 +64,4 @@ public class FlowConfig {
 
         return mailSender;
     }
-
 }

@@ -1,6 +1,7 @@
 package com.checkmarx.flow.utils;
 
 import org.slf4j.Logger;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -23,7 +24,9 @@ public class ZipUtils {
             throws IOException {
         List<String> excludeList = null;
         log.info("Creating zip file {} from contents of path {}", zipFile, fileToZip);
-        log.info("Applying exclusions: {}", excludePatterns);
+        if(excludePatterns != null) {
+            log.info("Applying exclusions: {}", excludePatterns);
+        }
 
         if(!ScanUtils.empty(excludePatterns)) {
             excludeList = Arrays.asList(excludePatterns.split(","));
